@@ -49,10 +49,10 @@ class PrintFunc : public ModulePass {
       string function_name = demangle(F.getName().str());
 
       // If function_name has open bracket, truncate it.
-      size_t pos = function_name.find("(");
-      if (pos != string::npos) {
-        function_name = function_name.substr(0, pos);
-      }
+      // size_t pos = function_name.find("(");
+      // if (pos != string::npos) {
+      //   function_name = function_name.substr(0, pos);
+      // }
 
       DISubprogram *subp = F.getSubprogram();
       if (!subp) {
