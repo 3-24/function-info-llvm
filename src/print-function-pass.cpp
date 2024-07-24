@@ -53,6 +53,26 @@ class PrintFunc : public ModulePass {
       // if (pos != string::npos) {
       //   function_name = function_name.substr(0, pos);
       // }
+      
+      
+      // Find the range of function definition
+      unsigned start_line = UINT32_MAX;
+      unsigned end_line = 0;
+
+      for (auto &BB : F) {
+        for (auto &I : BB) {
+          const DebugLoc &Loc = I.getDebugLoc();
+          if (Loc) {
+            unsigned line = Loc.getLine();
+            if (line < start_line) {
+              start_line = line;
+            }
+            if (line > end_line) {
+              end_line = line;
+            }
+          }
+        }
+      }
 
       DISubprogram *subp = F.getSubprogram();
       if (!subp) {
@@ -63,7 +83,8 @@ class PrintFunc : public ModulePass {
       const string filename = subp->getFilename().str();
 
 
-      printf("%s/%s %s\n", dirname.c_str(), filename.c_str(), function_name.c_str());
+
+      printf("%s/%s %s %u %u\n", dirname.c_str(), filename.c_str(), function_name.c_str(), start_line, end_line);
     }
 
     return true;
