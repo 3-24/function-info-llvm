@@ -17,15 +17,18 @@ CXXFLAGS=`llvm-config --cxxflags` -fPIC -ggdb -O0
 MAKEFILE_PATH=$(abspath $(lastword $(MAKEFILE_LIST)))
 MAKEFILE_DIR:=$(dir $(MAKEFILE_PATH))
 
-.PHONY : clean all print_function
+.PHONY : clean all print_function test
 
-all: print_function
+all: print_function test
 
 print_function: lib/libprintfunc.so
 
 lib/libprintfunc.so: src/print-function-pass.cpp
 	mkdir -p lib
 	$(CXX) $(CXXFLAGS) -shared $< -o $@
+
+test: lib/libprintfunc.so
+	$(MAKE) -C test
 
 clean:
 	rm -f lib/*.so lib/*.o log
