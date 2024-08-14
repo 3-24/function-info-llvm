@@ -8,7 +8,7 @@ RUN apt-get update && \
 # Copy gllvm from ghcr.io/3-24/gllvm:latest
 COPY --from=ghcr.io/3-24/gllvm:latest /go/bin/* /usr/local/bin/
 
-COPY . /function-info
-WORKDIR /function-info
+COPY . /function-info-llvm
+WORKDIR /function-info-llvm
 
 RUN make
