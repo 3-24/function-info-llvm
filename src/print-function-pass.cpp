@@ -115,7 +115,7 @@ public:
 
     cout << "[\n";
     for (FunctionInfo &info : function_infos) {
-      cout << "{"
+      cout << "    {"
            << "\"filename\": \"" << info.filename << "\", "
            << "\"name\": \"" << info.name << "\", "
            << "\"type\": \"" << info.type << "\", "
