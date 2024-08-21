@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <map>
+#include <sstream>
 
 #include "llvm/ADT/Statistic.h"
 #include "llvm/Demangle/Demangle.h"
@@ -27,11 +28,19 @@
 using namespace llvm;
 using namespace std;
 
-class PrintFunc : public ModulePass {
- public:
-  static char ID;  // Pass identification, replacement for typeid
+struct FunctionInfo {
+  string filename;
+  string name;
+  string type;
+  unsigned start_line;
+  unsigned end_line;
+};
 
-  // Fill out.
+vector<FunctionInfo> function_infos;
+
+class PrintFunc : public ModulePass {
+public:
+  static char ID;
 
   PrintFunc() : ModulePass(ID) {}
 
@@ -41,20 +50,37 @@ class PrintFunc : public ModulePass {
 
     IRBuilder<> IRB(M.getContext());
 
-    for (auto &F : M) {
+    for (Function &F : M) {
       if (F.size() == 0) {
         continue;
       }
 
       string function_name = demangle(F.getName().str());
 
-      // If function_name has open bracket, truncate it.
-      // size_t pos = function_name.find("(");
-      // if (pos != string::npos) {
-      //   function_name = function_name.substr(0, pos);
-      // }
-      
-      
+      // Get Function type
+      FunctionType *FTy = F.getFunctionType();
+      Type *RetTy = FTy->getReturnType();
+
+      string ret_ty_str;
+      raw_string_ostream ss(ret_ty_str);
+      RetTy->print(ss);
+
+      vector<string> arg_ty_strs(FTy->getNumParams());
+
+      for (unsigned i = 0; i < FTy->getNumParams(); i++) {
+        Type *ArgTy = FTy->getParamType(i);
+        raw_string_ostream ss(arg_ty_strs[i]);
+        ArgTy->print(ss);
+      }
+
+      // Make function type string
+      stringstream ss_func_ty;
+      for (unsigned i = 0; i < arg_ty_strs.size(); i++) {
+        ss_func_ty << arg_ty_strs[i] << " -> ";
+      }
+      ss_func_ty << ret_ty_str;
+      const string func_ty_str = ss_func_ty.str();
+
       // Find the range of function definition
       unsigned start_line = UINT32_MAX;
       unsigned end_line = 0;
@@ -79,13 +105,24 @@ class PrintFunc : public ModulePass {
         continue;
       }
 
-      const string dirname = subp->getDirectory().str();
-      const string filename = subp->getFilename().str();
+      string filename = subp->getDirectory().str();
+      filename += "/";
+      filename += subp->getFilename().str();
 
-
-
-      printf("%s/%s %s %u %u\n", dirname.c_str(), filename.c_str(), function_name.c_str(), start_line, end_line);
+      function_infos.push_back(
+          {filename, function_name, func_ty_str, start_line, end_line});
     }
+
+    cout << "[\n";
+    for (FunctionInfo &info : function_infos) {
+      cout << "{"
+           << "\"filename\": \"" << info.filename << "\", "
+           << "\"name\": \"" << info.name << "\", "
+           << "\"type\": \"" << info.type << "\", "
+           << "\"start_line\": " << info.start_line << ", "
+           << "\"end_line\": " << info.end_line << "},\n";
+    }
+    cout << "]\n";
 
     return true;
   }
@@ -100,8 +137,8 @@ static void registerPass(const PassManagerBuilder &,
   PM.add(new PrintFunc());
 }
 
-static RegisterStandardPasses RegisterPassOpt(
-    PassManagerBuilder::EP_ModuleOptimizerEarly, registerPass);
+static RegisterStandardPasses
+    RegisterPassOpt(PassManagerBuilder::EP_ModuleOptimizerEarly, registerPass);
 
-static RegisterStandardPasses RegisterPassO0(
-    PassManagerBuilder::EP_EnabledOnOptLevel0, registerPass);
+static RegisterStandardPasses
+    RegisterPassO0(PassManagerBuilder::EP_EnabledOnOptLevel0, registerPass);
